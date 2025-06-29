@@ -1,1 +1,15 @@
+# Ignore CMake results
 build/
+
+# Ignore vscode settings
+.vscode
+
+# Ignore course book & assigmnet description
+Lecture notes.pdf
+A*.pdf
+
+# Ignore python venv
+.env
+
+# Ignore data files
+*.csv
