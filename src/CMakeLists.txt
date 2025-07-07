@@ -5,7 +5,10 @@
 
 add_executable(${PROJECT_NAME} 
     main.cpp 
-    glad.c)
+    Plotting/resource_manager.cpp
+    Plotting/shader.cpp
+    Plotting/plotter.cpp
+    Plotting/glad.c)
 
 target_compile_options(${PROJECT_NAME} PUBLIC -Wall -Wfloat-conversion)
 
