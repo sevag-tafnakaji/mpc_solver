@@ -25,7 +25,7 @@ public:
 
         x.push_back(x_0);
 
-        for (unsigned int i = 0; i < N_steps; i++)
+        for (int i = 0; i < N_steps; i++)
         {
             auto sim_step = simulate_step(x[i]);
             x.push_back(sim_step.first);
@@ -56,11 +56,11 @@ private:
 
         std::ofstream csv_file;
         csv_file.open(file_name);
-        for (unsigned int i = 1; i <= n_states; i++)
+        for (int i = 1; i <= n_states; i++)
         {
             csv_file << "x" << i << ",";
         }
-        for (unsigned int j = 1; j <= n_inputs; j++)
+        for (int j = 1; j <= n_inputs; j++)
         {
             csv_file << "u" << j;
             if (j != n_inputs)
@@ -71,14 +71,14 @@ private:
 
         int num_elems = u.size();
 
-        for (unsigned int elem_idx = 0; elem_idx < num_elems; elem_idx++)
+        for (int elem_idx = 0; elem_idx < num_elems; elem_idx++)
         {
 
-            for (unsigned int state_idx = 0; state_idx < n_states; state_idx++)
+            for (int state_idx = 0; state_idx < n_states; state_idx++)
             {
                 csv_file << x[elem_idx][state_idx] << ",";
             }
-            for (unsigned int input_idx = 0; input_idx < n_inputs; input_idx++)
+            for (int input_idx = 0; input_idx < n_inputs; input_idx++)
             {
                 csv_file << u[elem_idx][input_idx];
                 if (input_idx != n_inputs - 1)
@@ -151,8 +151,7 @@ public:
 
         int iter_idx = 0;
         int max_iter = 100000;
-        float tolerance = 0.1;
-        float dt = 0.001;
+        float tolerance = 0.1f;
 
         while (diff > tolerance || iter_idx > max_iter)
         {
