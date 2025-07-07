@@ -9,8 +9,8 @@
 #include <GLFW/glfw3.h>
 #include "Plotting/plotter.h"
 
-#define HORIZON 4
-#define N_STEPS 20
+#define HORIZON 40
+#define N_STEPS 200
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
@@ -24,10 +24,20 @@ int main()
 
     LinearMPC test_mpc{HORIZON, A, B, P_f, Q, R};
 
+    std::vector<double> t;
+
     auto start = std::chrono::high_resolution_clock::now();
 
     // simulate_dp(x, u, N_STEPS);
-    test_mpc.simulate(N_STEPS, x_0, false, "/home/sevag/Documents/Projects/mpc_solver/test_file.csv");
+    auto results = test_mpc.simulate(N_STEPS, x_0, false, "/home/sevag/Documents/Projects/mpc_solver/test_file.csv");
+
+    std::vector<double> u;
+
+    for (int i = 0; i < N_STEPS; i++)
+    {
+        t.push_back(i);
+        u.push_back(results.second[i][0]);
+    }
 
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -79,7 +89,7 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         // draw our first triangle
-        plot.draw();
+        plot.draw(t, u);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------

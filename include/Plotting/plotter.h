@@ -2,6 +2,7 @@
 #define PLOTTER_H
 
 #include "resource_manager.h"
+#include <vector>
 
 class Plotter
 {
@@ -11,7 +12,7 @@ public:
     unsigned int VAO;
     unsigned int EBO;
 
-    virtual void draw();
+    virtual void draw(std::vector<double> x, std::vector<double> y);
     virtual void update();
 
 private:
