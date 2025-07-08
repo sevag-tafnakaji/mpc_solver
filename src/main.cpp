@@ -20,11 +20,19 @@ int main()
     auto results = test_mpc.simulate(N_STEPS, x_0, false, "/home/sevag/Documents/Projects/mpc_solver/test_file.csv");
 
     std::vector<double> u;
+    std::vector<double> x1;
+    std::vector<double> x2;
+    std::vector<double> x3;
+    std::vector<double> x4;
 
     for (int i = 0; i < N_STEPS; i++)
     {
         t.push_back(i);
         u.push_back(results.second[i][0]);
+        x1.push_back(results.first[i][0]);
+        x2.push_back(results.first[i][1]);
+        x3.push_back(results.first[i][2]);
+        x4.push_back(results.first[i][3]);
     }
 
     auto end = std::chrono::high_resolution_clock::now();
@@ -37,7 +45,11 @@ int main()
     Plotter plot;
 
     // plot then show some data
-    plot.plot(t, u);
+    // plot.plot(t, u);
+    plot.plot(t, x1);
+    plot.plot(t, x2);
+    plot.plot(t, x3);
+    plot.plot(t, x4);
 
     plot.render();
 

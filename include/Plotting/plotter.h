@@ -29,6 +29,14 @@ private:
     const unsigned int SCR_WIDTH = 800;
     const unsigned int SCR_HEIGHT = 600;
 
+    std::vector<std::vector<double>> xData;
+    std::vector<std::vector<double>> yData;
+
+    double xMin{std::numeric_limits<double>::max()};
+    double yMin{std::numeric_limits<double>::max()};
+    double xMax{std::numeric_limits<double>::min()};
+    double yMax{std::numeric_limits<double>::min()};
+
     // Single window for now (vector for multiple in the future?)
     GLFWwindow *window;
 
@@ -39,6 +47,10 @@ private:
     std::vector<std::pair<unsigned int, int>> activeVAOs;
 
     void updateBuffers(unsigned int buffer, int numVertices);
+
+    void extractMinMaxValues();
+
+    void loadDataToBuffers();
 
     void init();
 

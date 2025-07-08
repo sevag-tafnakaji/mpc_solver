@@ -16,15 +16,12 @@ Plotter::~Plotter()
     glfwTerminate();
 }
 
-std::vector<double> scale_vector(std::vector<double> vect)
+std::vector<double> scaleVector(std::vector<double> vect, double minValue, double maxValue)
 {
     // scale vector such that all new values would be [-0.5, 0.5]
-    double min_value = *std::min_element(vect.begin(), vect.end());
-    double max_value = *std::max_element(vect.begin(), vect.end());
+    double abs_min_value = fabs(minValue);
 
-    double abs_min_value = abs(min_value);
-
-    double shifted_max = max_value + abs_min_value;
+    double shifted_max = maxValue + abs_min_value;
 
     std::vector<double> scaled_vector;
 
@@ -39,40 +36,91 @@ std::vector<double> scale_vector(std::vector<double> vect)
 
 void Plotter::plot(std::vector<double> x, std::vector<double> y)
 {
-    // TODO: Ensure that x and y are of the same size
+    if (x.size() != y.size())
+        throw std::invalid_argument("X & Y are of different sizes.");
 
-    float vertices[x.size() * 2];
-
-    // Scale values to range from -0.5 to 0.5 (horizontally and vertically)
-    std::vector<double> new_x = scale_vector(x);
-    std::vector<double> new_y = scale_vector(y);
-
-    int j = 0;
-    for (int i = 0; i < x.size() * 2; i += 2)
-    {
-        vertices[i] = new_x[j];
-        vertices[i + 1] = new_y[j];
-        j++;
-    }
-
-    unsigned int VBO, VAO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-
-    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-
-    updateBuffers(VAO, x.size());
+    xData.push_back(x);
+    yData.push_back(y);
 }
 
+void Plotter::extractMinMaxValues()
+{
+    for (std::vector<double> x : xData)
+    {
+        const auto [minValue, maxValue] = std::minmax_element(x.begin(), x.end());
+
+        if (*minValue < xMin)
+            xMin = *minValue;
+
+        if (*maxValue > xMax)
+            xMax = *maxValue;
+    }
+
+    for (std::vector<double> y : yData)
+    {
+        const auto [minValue, maxValue] = std::minmax_element(y.begin(), y.end());
+
+        if (*minValue < yMin)
+            yMin = *minValue;
+
+        if (*maxValue > yMax)
+            yMax = *maxValue;
+    }
+}
+
+void Plotter::loadDataToBuffers()
+{
+    if (xData.size() != yData.size())
+        throw std::invalid_argument("Somehow the stored X & Y data do not match");
+
+    for (int i = 0; i < xData.size(); i++)
+    {
+        std::vector<double> x = xData[i];
+        std::vector<double> y = yData[i];
+
+        float vertices[x.size() * 2];
+
+        // Scale values to range from -0.5 to 0.5 (horizontally and vertically)
+        std::vector<double> new_x = scaleVector(x, xMin, xMax);
+        std::vector<double> new_y = scaleVector(y, yMin, yMax);
+
+        int j = 0;
+        for (int i = 0; i < x.size() * 2; i += 2)
+        {
+            vertices[i] = new_x[j];
+            vertices[i + 1] = new_y[j];
+            j++;
+        }
+
+        unsigned int VBO, VAO;
+        glGenVertexArrays(1, &VAO);
+        glGenBuffers(1, &VBO);
+
+        // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+        glBindVertexArray(VAO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
+        glEnableVertexAttribArray(0);
+
+        updateBuffers(VAO, x.size());
+    }
+}
+
+/**
+ * TODO: Add the following:
+ * Grid
+ * Colour for each line (automatic + manual)
+ * axis ticks and values (automatic + manual)
+ * legend/label (must be able to throw error if no label was given)
+ */
 void Plotter::render()
 {
+
+    extractMinMaxValues();
+    loadDataToBuffers();
 
     // render loop
     // -----------
