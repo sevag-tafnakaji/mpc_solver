@@ -1,12 +1,19 @@
 #include "Plotting/plotter.h"
-#include <algorithm>
-#include <cmath>
-#include <iostream>
-#include <vector>
 
 Plotter::Plotter()
 {
     this->init();
+}
+
+Plotter::~Plotter()
+{
+    // TODO: delete all buffers
+    // glDeleteVertexArrays(1, &plot.VAO);
+    ResourceManager::Clear();
+
+    // glfw: terminate, clearing all previously allocated GLFW resources.
+    // ------------------------------------------------------------------
+    glfwTerminate();
 }
 
 std::vector<double> scale_vector(std::vector<double> vect)
@@ -30,17 +37,17 @@ std::vector<double> scale_vector(std::vector<double> vect)
     return scaled_vector;
 }
 
-void Plotter::draw(std::vector<double> x, std::vector<double> y)
+void Plotter::plot(std::vector<double> x, std::vector<double> y)
 {
     // TODO: Ensure that x and y are of the same size
 
     float vertices[x.size() * 2];
 
+    // Scale values to range from -0.5 to 0.5 (horizontally and vertically)
     std::vector<double> new_x = scale_vector(x);
     std::vector<double> new_y = scale_vector(y);
 
     int j = 0;
-    // Scale values to range from -0.5 to 0.5 (horizontally and vertically)
     for (int i = 0; i < x.size() * 2; i += 2)
     {
         vertices[i] = new_x[j];
@@ -48,9 +55,10 @@ void Plotter::draw(std::vector<double> x, std::vector<double> y)
         j++;
     }
 
-    unsigned int VBO;
+    unsigned int VBO, VAO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
+
     // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
     glBindVertexArray(VAO);
 
@@ -60,52 +68,126 @@ void Plotter::draw(std::vector<double> x, std::vector<double> y)
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
 
-    // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    ResourceManager::GetShader("plotter").Use();
-
-    glBindVertexArray(VAO);
-    glDrawArrays(GL_LINE_STRIP, 0, x.size());
-
-    glBindVertexArray(0);
+    updateBuffers(VAO, x.size());
 }
 
-void Plotter::update()
+void Plotter::render()
 {
+
+    // render loop
+    // -----------
+    while (!glfwWindowShouldClose(window))
+    {
+        // input
+        // -----
+        processInput(window);
+
+        // render
+        // ------
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        // Activate the current shader
+        ResourceManager::GetShader("plotter").Use();
+
+        // plot all of the active buffers
+        for (std::pair<unsigned int, int> BufferWithNumVertices : activeVAOs)
+        {
+            glBindVertexArray(BufferWithNumVertices.first);
+            glDrawArrays(GL_LINE_STRIP, 0, BufferWithNumVertices.second);
+        }
+
+        glBindVertexArray(0);
+
+        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+        // -------------------------------------------------------------------------------
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+}
+
+void Plotter::plotAxes()
+{
+    float axes[6];
+
+    axes[0] = 0.6f;
+    axes[1] = -0.6f;
+    axes[2] = -0.6f;
+    axes[3] = -0.6f;
+    axes[4] = -0.6f;
+    axes[5] = 0.6f;
+
+    unsigned int VBO, VAO;
+    glGenVertexArrays(1, &VAO);
+
+    glGenBuffers(1, &VBO);
+
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(axes), axes, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(0);
+
+    updateBuffers(VAO, 3);
+}
+
+void Plotter::updateBuffers(unsigned int buffer, int numVertices)
+{
+    std::pair<unsigned int, int> result = std::make_pair(buffer, numVertices);
+
+    VAOs.push_back(result);
+    activeVAOs.push_back(result);
 }
 
 void Plotter::init()
 {
+    // glfw: initialize and configure
+    // ------------------------------
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    // glfw window creation
+    // --------------------
+    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    if (window == NULL)
+    {
+        std::cout << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        // TODO: Raise some custom failed init error
+    }
+    glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+    // glad: load all OpenGL function pointers
+    // ---------------------------------------
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        std::cout << "Failed to initialize GLAD" << std::endl;
+        // TODO: Raise some custom failed init error
+    }
+
     ResourceManager::LoadShader("../resources/shaders/shader.vs", "../resources/shaders/shader.fs", nullptr, "plotter");
 
-    // set up vertex data (and buffer(s)) and configure vertex attributes
-    // ------------------------------------------------------------------
-    float vertices[] = {
-        -0.5f, -0.5f, // left
-        0.0f, 0.5f,   // top
-        0.5f, -0.5f,  // right
-    };
+    plotAxes();
+}
 
-    unsigned int VBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-    glBindVertexArray(VAO);
+// // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
+// // ---------------------------------------------------------------------------------------------------------
+void processInput(GLFWwindow *window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+}
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-
-    // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-    // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-    glBindVertexArray(0);
-
-    // uncomment this call to draw in wireframe polygons.
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+// glfw: whenever the window size changed (by OS or user resize) this callback function executes
+// ---------------------------------------------------------------------------------------------
+void framebuffer_size_callback(GLFWwindow *window, int width, int height)
+{
+    // make sure the viewport matches the new window dimensions; note that width and
+    // height will be significantly larger than specified on retina displays.
+    glViewport(0, 0, width, height);
 }

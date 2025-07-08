@@ -60,3 +60,10 @@ Shader ResourceManager::loadShaderFromFile(const char *vShaderFile, const char *
     shader.Compile(vShaderCode, fShaderCode, gShaderFile != nullptr ? gShaderCode : nullptr);
     return shader;
 }
+
+void ResourceManager::Clear()
+{
+    // (properly) delete all shaders
+    for (auto iter : Shaders)
+        glDeleteProgram(iter.second.ID);
+}
