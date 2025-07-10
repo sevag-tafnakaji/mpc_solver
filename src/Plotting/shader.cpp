@@ -57,6 +57,20 @@ void Shader::Compile(const char *vertexSource, const char *fragmentSource,
     }
 }
 
+void Shader::SetVector3f(const char *name, float x, float y, float z, bool useShader)
+{
+    if (useShader)
+        this->Use();
+    glUniform3f(glGetUniformLocation(this->ID, name), x, y, z);
+}
+
+void Shader::SetVector3f(const char *name, const Eigen::Vector3f &value, bool useShader)
+{
+    if (useShader)
+        this->Use();
+    glUniform3f(glGetUniformLocation(this->ID, name), value[0], value[1], value[2]);
+}
+
 void Shader::checkCompileErrors(unsigned int object, std::string type)
 {
     int success;

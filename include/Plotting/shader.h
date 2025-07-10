@@ -2,6 +2,7 @@
 #define SHADER_H
 
 #include <glad/glad.h>
+#include <Eigen/Eigen>
 
 #include <string>
 
@@ -17,6 +18,9 @@ public:
     // compiles the shader from given source code
     void Compile(const char *vertexSource, const char *fragmentSource,
                  const char *geometrySource = nullptr); // note: geometry source code is optional
+
+    void SetVector3f(const char *name, float x, float y, float z, bool useShader);
+    void SetVector3f(const char *name, const Eigen::Vector3f &value, bool useShader);
 
 private:
     // checks if compilation or linking failed and if so, print the error logs

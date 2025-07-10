@@ -16,7 +16,6 @@ int main()
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    // simulate_dp(x, u, N_STEPS);
     auto results = test_mpc.simulate(N_STEPS, x_0, false, "/home/sevag/Documents/Projects/mpc_solver/test_file.csv");
 
     std::vector<double> u;
@@ -46,10 +45,10 @@ int main()
 
     // plot then show some data
     // plot.plot(t, u);
-    plot.plot(t, x1);
-    plot.plot(t, x2);
-    plot.plot(t, x3);
-    plot.plot(t, x4);
+    plot.plot(t, x1, "ORANGE");
+    plot.plot(t, x2, "GREEN");
+    plot.plot(t, x3, "RED");
+    plot.plot(t, x4, "BLUE");
 
     plot.render();
 

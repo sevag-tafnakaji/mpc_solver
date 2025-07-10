@@ -1,5 +1,15 @@
 #include "Plotting/plotter.h"
 
+bool comp_x(const Vertex &a, const Vertex &b)
+{
+    return a.x < b.x;
+}
+
+bool comp_y(const Vertex &a, const Vertex &b)
+{
+    return a.y < b.y;
+}
+
 Plotter::Plotter()
 {
     this->init();
@@ -7,8 +17,10 @@ Plotter::Plotter()
 
 Plotter::~Plotter()
 {
-    // TODO: delete all buffers
-    // glDeleteVertexArrays(1, &plot.VAO);
+    for (RenderData data : VAOs)
+    {
+        glDeleteVertexArrays(1, &data.VAO);
+    }
     ResourceManager::Clear();
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
@@ -16,96 +28,69 @@ Plotter::~Plotter()
     glfwTerminate();
 }
 
-std::vector<double> scaleVector(std::vector<double> vect, double minValue, double maxValue)
-{
-    // scale vector such that all new values would be [-0.5, 0.5]
-    double abs_min_value = fabs(minValue);
-
-    double shifted_max = maxValue + abs_min_value;
-
-    std::vector<double> scaled_vector;
-
-    for (double elem : vect)
-    {
-        double shifted_elem = (elem + abs_min_value) / shifted_max - 0.5;
-        scaled_vector.push_back(shifted_elem);
-    }
-
-    return scaled_vector;
-}
-
 void Plotter::plot(std::vector<double> x, std::vector<double> y)
 {
     if (x.size() != y.size())
         throw std::invalid_argument("X & Y are of different sizes.");
 
-    xData.push_back(x);
-    yData.push_back(y);
+    // numLines iterates over the valid colours defined in line.h
+    int numLines = plotLines.size() % NUM_COLOURS;
+
+    Line line(numLines);
+
+    line.setData(x, y);
+
+    plotLines.push_back(line);
+}
+
+void Plotter::plot(std::vector<double> x, std::vector<double> y, std::string colour)
+{
+    if (x.size() != y.size())
+        throw std::invalid_argument("X & Y are of different sizes.");
+
+    Line line(x, y, colour);
+
+    plotLines.push_back(line);
+}
+
+void Plotter::plot(std::vector<double> x, std::vector<double> y, Eigen::Vector3f colour)
+{
+    if (x.size() != y.size())
+        throw std::invalid_argument("X & Y are of different sizes.");
+
+    Line line(x, y, colour);
+
+    plotLines.push_back(line);
 }
 
 void Plotter::extractMinMaxValues()
 {
-    for (std::vector<double> x : xData)
+    for (Line l : plotLines)
     {
-        const auto [minValue, maxValue] = std::minmax_element(x.begin(), x.end());
+        const auto [xMinValue, xMaxValue] = std::minmax_element(l.lineData.begin(), l.lineData.end(), comp_x);
+        const auto [yMinValue, yMaxValue] = std::minmax_element(l.lineData.begin(), l.lineData.end(), comp_y);
 
-        if (*minValue < xMin)
-            xMin = *minValue;
+        if (xMinValue->x < xMin)
+            xMin = xMinValue->x;
 
-        if (*maxValue > xMax)
-            xMax = *maxValue;
-    }
+        if (xMaxValue->x > xMax)
+            xMax = xMaxValue->x;
 
-    for (std::vector<double> y : yData)
-    {
-        const auto [minValue, maxValue] = std::minmax_element(y.begin(), y.end());
+        if (yMinValue->y < yMin)
+            yMin = yMinValue->y;
 
-        if (*minValue < yMin)
-            yMin = *minValue;
-
-        if (*maxValue > yMax)
-            yMax = *maxValue;
+        if (yMaxValue->y > yMax)
+            yMax = yMaxValue->y;
     }
 }
 
 void Plotter::loadDataToBuffers()
 {
-    if (xData.size() != yData.size())
-        throw std::invalid_argument("Somehow the stored X & Y data do not match");
-
-    for (int i = 0; i < xData.size(); i++)
+    for (Line line : plotLines)
     {
-        std::vector<double> x = xData[i];
-        std::vector<double> y = yData[i];
+        RenderData data = line.loadDataToBuffers(xMin, xMax, yMin, yMax);
 
-        float vertices[x.size() * 2];
-
-        // Scale values to range from -0.5 to 0.5 (horizontally and vertically)
-        std::vector<double> new_x = scaleVector(x, xMin, xMax);
-        std::vector<double> new_y = scaleVector(y, yMin, yMax);
-
-        int j = 0;
-        for (int i = 0; i < x.size() * 2; i += 2)
-        {
-            vertices[i] = new_x[j];
-            vertices[i + 1] = new_y[j];
-            j++;
-        }
-
-        unsigned int VBO, VAO;
-        glGenVertexArrays(1, &VAO);
-        glGenBuffers(1, &VBO);
-
-        // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-        glBindVertexArray(VAO);
-
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
-        glEnableVertexAttribArray(0);
-
-        updateBuffers(VAO, x.size());
+        updateBuffers(data);
     }
 }
 
@@ -119,8 +104,13 @@ void Plotter::loadDataToBuffers()
 void Plotter::render()
 {
 
+    // Extract what the maximum x & y values are
     extractMinMaxValues();
+
+    // use the max x & y values to scale data of each line to [-0.5, 0.5], then store as RenderData struct
     loadDataToBuffers();
+
+    auto start = std::chrono::high_resolution_clock::now();
 
     // render loop
     // -----------
@@ -136,13 +126,16 @@ void Plotter::render()
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Activate the current shader
-        ResourceManager::GetShader("plotter").Use();
+        Shader shader = ResourceManager::GetShader("plotter");
+
+        shader.Use();
 
         // plot all of the active buffers
-        for (std::pair<unsigned int, int> BufferWithNumVertices : activeVAOs)
+        for (RenderData renderBuffers : activeVAOs)
         {
-            glBindVertexArray(BufferWithNumVertices.first);
-            glDrawArrays(GL_LINE_STRIP, 0, BufferWithNumVertices.second);
+            shader.SetVector3f("colour", renderBuffers.colour, false);
+            glBindVertexArray(renderBuffers.VAO);
+            glDrawArrays(GL_LINE_STRIP, 0, renderBuffers.bufferSize);
         }
 
         glBindVertexArray(0);
@@ -151,6 +144,14 @@ void Plotter::render()
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        auto end = std::chrono::high_resolution_clock::now();
+
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+        // std::cout << duration.count() << "ms (" << 1000.0 / duration.count() << " FPS)." << std::endl;
+
+        start = end;
     }
 }
 
@@ -178,15 +179,21 @@ void Plotter::plotAxes()
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
 
-    updateBuffers(VAO, 3);
+    updateBuffers(VAO, 3, Eigen::Vector3f{1.0f, 1.0f, 1.0f});
 }
 
-void Plotter::updateBuffers(unsigned int buffer, int numVertices)
+void Plotter::updateBuffers(unsigned int buffer, int numVertices, Eigen::Vector3f colour)
 {
-    std::pair<unsigned int, int> result = std::make_pair(buffer, numVertices);
+    RenderData data{buffer, numVertices, colour};
 
-    VAOs.push_back(result);
-    activeVAOs.push_back(result);
+    VAOs.push_back(data);
+    activeVAOs.push_back(data);
+}
+
+void Plotter::updateBuffers(RenderData data)
+{
+    VAOs.push_back(data);
+    activeVAOs.push_back(data);
 }
 
 void Plotter::init()
