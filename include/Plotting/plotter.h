@@ -9,12 +9,27 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 #include "resource_manager.h"
 #include "line.h"
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
+
+#define NUM_X_TICKS 9
+#define NUM_Y_TICKS 7
+#define TICK_OFFSET 0.025f
+#define TEXT_OFFSET 10
+
+struct Character
+{
+    unsigned int TextureID;  // ID handle of the glyph texture
+    Eigen::Vector2i Size;    // Size of glyph
+    Eigen::Vector2i Bearing; // Offset from baseline to left/top of glyph
+    unsigned int Advance;    // Offset to advance to next glyph
+};
 
 class Plotter
 {
@@ -29,12 +44,17 @@ public:
     // Main loop that renders all active VAOs
     virtual void render();
 
+    std::map<char, Character> characters;
+
 private:
     // settings
-    const unsigned int SCR_WIDTH = 800;
-    const unsigned int SCR_HEIGHT = 600;
+    int SCR_WIDTH = 800;
+    int SCR_HEIGHT = 600;
 
     std::vector<Line> plotLines;
+
+    std::vector<Vertex> xTickPositions;
+    std::vector<Vertex> yTickPositions;
 
     double xMin{std::numeric_limits<double>::max()};
     double yMin{std::numeric_limits<double>::max()};
@@ -50,7 +70,10 @@ private:
     // only active VAOs + data related to drawing lines as desired
     std::vector<RenderData> activeVAOs;
 
-    void updateBuffers(unsigned int buffer, int numVertices, Eigen::Vector3f colour);
+    // Text gets special VBO + VAO
+    unsigned int textVBO, textVAO;
+
+    void updateBuffers(unsigned int buffer, int numVertices, Eigen::Vector3f colour, GLenum mode);
     void updateBuffers(RenderData data);
 
     void extractMinMaxValues();
@@ -59,7 +82,15 @@ private:
 
     void init();
 
+    void initFont();
+
     void plotAxes();
+
+    void renderText(std::string text, float x, float y, float scale, Colour colour);
+
+    void renderTickLabels();
+
+    void plotAxesTicks();
 };
 
 #endif

@@ -1,25 +1,9 @@
-#include <vector>
-#include <random>
-#include <chrono>
-
+#ifndef LINE_H
+#define LINE_H
 #include "colour.h"
+#include "utils.h"
 
 #define NUM_COLOURS 4
-
-struct Vertex
-{
-    double x;
-    double y;
-
-    Vertex(double _x, double _y) : x{_x}, y{_y} {}
-};
-
-struct RenderData
-{
-    unsigned int VAO;
-    int bufferSize;
-    Eigen::Vector3f colour;
-};
 
 /**
  * TODO: Add following options:
@@ -30,9 +14,9 @@ class Line
 {
 public:
     std::vector<Vertex> lineData;
-    LineColour lineColour;
+    Colour lineColour;
 
-    Line(std::vector<Vertex> _lineData, LineColour _lineColour) : lineData{_lineData}, lineColour{_lineColour} {}
+    Line(std::vector<Vertex> _lineData, Colour _lineColour) : lineData{_lineData}, lineColour{_lineColour} {}
 
     Line(std::vector<Vertex> _lineData)
     {
@@ -42,33 +26,33 @@ public:
     Line(std::vector<double> x, std::vector<double> y, Eigen::Vector3f _lineColour)
     {
         setData(x, y);
-        lineColour.setLineColour(_lineColour);
+        lineColour.setColour(_lineColour);
     }
 
     Line(std::vector<double> x, std::vector<double> y, std::string _lineColour)
     {
         setData(x, y);
-        lineColour.setLineColour(_lineColour);
+        lineColour.setColour(_lineColour);
     }
 
     Line(int numLines)
     {
-        lineColour.setLineColour(validColours[numLines]);
+        lineColour.setColour(validColours[numLines]);
     }
 
-    void setLineColour(std::string _colour)
+    void setColour(std::string _colour)
     {
-        lineColour.setLineColour(_colour);
+        lineColour.setColour(_colour);
     }
 
-    void setLineColour(float r, float g, float b)
+    void setColour(float r, float g, float b)
     {
-        lineColour.setLineColour(r, g, b);
+        lineColour.setColour(r, g, b);
     }
 
-    void setLineColour(Eigen::Vector3f _colour)
+    void setColour(Eigen::Vector3f _colour)
     {
-        lineColour.setLineColour(_colour[0], _colour[1], _colour[2]);
+        lineColour.setColour(_colour[0], _colour[1], _colour[2]);
     }
 
     void setData(std::vector<Vertex> _lineData)
@@ -92,7 +76,7 @@ public:
         return lineColour.colour;
     }
 
-    RenderData loadDataToBuffers(double xMin, double xMax, double yMin, double yMax)
+    RenderData loadDataToBuffers(double xMin, double xMax, double yMin, double yMax, GLenum mode)
     {
         std::vector<Vertex> scaledVertices = scaleVector(lineData, xMin, xMax, yMin, yMax);
         float vertices[lineData.size() * 2];
@@ -118,50 +102,16 @@ public:
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
         glEnableVertexAttribArray(0);
 
-        return RenderData{VAO, (int)lineData.size(), colour()};
+        return RenderData{VAO, (int)lineData.size(), colour(), mode};
     }
 
 private:
     // Colours/shades that can be chosen for lines (other colours could be reserved for axes, grid, etc)
-    Colour validColours[NUM_COLOURS] = {
-        Colour::WHITE,
-        Colour::RED,
-        Colour::GREEN,
-        Colour::BLUE};
-
-    double random_zero_to_one()
-    {
-        std::mt19937_64 rng;
-        // initialize the random number generator with time-dependent seed
-        uint64_t timeSeed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-        std::seed_seq ss{uint32_t(timeSeed & 0xffffffff), uint32_t(timeSeed >> 32)};
-        rng.seed(ss);
-        // initialize a uniform distribution between 0 and 1
-        std::uniform_real_distribution<double> unif(0, 1);
-        // ready to generate random numbers
-        double currentRandomNumber = unif(rng);
-        return currentRandomNumber;
-    }
-
-    std::vector<Vertex> scaleVector(std::vector<Vertex> vect, double xMinValue, double xMaxValue, double yMinValue, double yMaxValue)
-    {
-        // scale vector such that all new values would be [-0.5, 0.5]
-        double xAbsMinValue = fabs(xMinValue);
-        double xShiftedMax = xMaxValue + xAbsMinValue;
-
-        double yAbsMinValue = fabs(yMinValue);
-        double yShiftedMax = yMaxValue + yAbsMinValue;
-
-        std::vector<Vertex> scaledVector;
-
-        for (Vertex vert : vect)
-        {
-            double shiftedX = (vert.x + xAbsMinValue) / xShiftedMax - 0.5;
-            double shiftedY = (vert.y + yAbsMinValue) / yShiftedMax - 0.5;
-            Vertex scaledVertex{shiftedX, shiftedY};
-            scaledVector.push_back(scaledVertex);
-        }
-
-        return scaledVector;
-    }
+    PredefinedColour validColours[NUM_COLOURS] = {
+        PredefinedColour::ORANGE,
+        PredefinedColour::RED,
+        PredefinedColour::GREEN,
+        PredefinedColour::BLUE};
 };
+
+#endif

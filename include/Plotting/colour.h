@@ -1,8 +1,11 @@
+#ifndef COLOUR_H
+#define COLOUR_H
+
 #include <iostream>
 
 #include <Eigen/Eigen>
 
-enum Colour
+enum PredefinedColour
 {
     WHITE,
     BLACK,
@@ -12,43 +15,43 @@ enum Colour
     BLUE
 };
 
-class LineColour
+class Colour
 {
 public:
     Eigen::Vector3f colour;
 
-    LineColour(std::string _colour)
+    Colour(std::string _colour)
     {
-        setLineColour(_colour);
+        setColour(_colour);
     };
 
-    LineColour(float r, float g, float b)
+    Colour(float r, float g, float b)
     {
-        setLineColour(r, g, b);
+        setColour(r, g, b);
     }
 
-    LineColour(Eigen::Vector3f _colour)
+    Colour(Eigen::Vector3f _colour)
     {
-        setLineColour(_colour);
+        setColour(_colour);
     }
 
-    LineColour()
+    Colour()
     {
         colour = BLACK;
     };
 
-    void setLineColour(std::string _colour)
+    void setColour(std::string _colour)
     {
-        Colour colourEnum = stringToColourEnum[_colour];
+        PredefinedColour colourEnum = stringToColourEnum[_colour];
         colour = getColour(colourEnum);
     }
 
-    void setLineColour(Colour _colour)
+    void setColour(PredefinedColour _colour)
     {
         colour = getColour(_colour);
     }
 
-    void setLineColour(float r, float g, float b)
+    void setColour(float r, float g, float b)
     {
         if (withinBounds(r) && withinBounds(g) && withinBounds(b))
             colour = {r, g, b};
@@ -59,20 +62,20 @@ public:
         }
     }
 
-    void setLineColour(Eigen::Vector3f _colour)
+    void setColour(Eigen::Vector3f _colour)
     {
         colour = _colour;
     }
 
 private:
     // All of the pre-defined colours
-    std::map<std::string, Colour> stringToColourEnum{
-        {"WHITE", Colour::WHITE},
-        {"BLACK", Colour::BLACK},
-        {"ORANGE", Colour::ORANGE},
-        {"RED", Colour::RED},
-        {"GREEN", Colour::GREEN},
-        {"BLUE", Colour::BLUE},
+    std::map<std::string, PredefinedColour> stringToColourEnum{
+        {"WHITE", PredefinedColour::WHITE},
+        {"BLACK", PredefinedColour::BLACK},
+        {"ORANGE", PredefinedColour::ORANGE},
+        {"RED", PredefinedColour::RED},
+        {"GREEN", PredefinedColour::GREEN},
+        {"BLUE", PredefinedColour::BLUE},
     };
 
     Eigen::Vector3f WHITE{1.0f, 1.0f, 1.0f};
@@ -82,27 +85,30 @@ private:
     Eigen::Vector3f GREEN{0.0f, 1.0f, 0.0f};
     Eigen::Vector3f BLUE{0.0f, 0.0f, 1.0f};
 
-    Eigen::Vector3f getColour(Colour _colour)
+    Eigen::Vector3f getColour(PredefinedColour _colour)
     {
         switch (_colour)
         {
-        case (Colour::WHITE):
+        case (PredefinedColour::WHITE):
             return WHITE;
             break;
-        case (Colour::BLACK):
+        case (PredefinedColour::BLACK):
             return BLACK;
             break;
-        case (Colour::ORANGE):
+        case (PredefinedColour::ORANGE):
             return ORANGE;
             break;
-        case (Colour::RED):
+        case (PredefinedColour::RED):
             return RED;
             break;
-        case (Colour::GREEN):
+        case (PredefinedColour::GREEN):
             return GREEN;
             break;
-        case (Colour::BLUE):
+        case (PredefinedColour::BLUE):
             return BLUE;
+            break;
+        default:
+            return BLACK;
             break;
         }
     }
@@ -112,3 +118,5 @@ private:
         return (value >= 0.0f && value <= 1.0f);
     }
 };
+
+#endif

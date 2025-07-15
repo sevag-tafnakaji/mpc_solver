@@ -8,6 +8,7 @@ add_executable(${PROJECT_NAME}
     Plotting/resource_manager.cpp
     Plotting/shader.cpp
     Plotting/plotter.cpp
+    Plotting/utils.cpp
     Plotting/glad.c)
 
 target_compile_options(${PROJECT_NAME} PUBLIC -Wall -Wfloat-conversion)
@@ -16,7 +17,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ../include)
 
 target_link_libraries(${PROJECT_NAME}
     # here you can add any library dependencies
-    glfw dl GL
+    glfw dl GL freetype
 )
 
 install(TARGETS ${PROJECT_NAME} DESTINATION ${PROJECT_NAME}_destination)
