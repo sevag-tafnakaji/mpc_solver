@@ -51,13 +51,13 @@ int main()
     Plotter plot;
 
     // plot then show some data
-    // plot.plot(t, u);
-    // plot.plot(t, x1, "ORANGE");
-    // plot.plot(t, x2, "GREEN");
-    // plot.plot(t, x3, "RED");
-    // plot.plot(t, x4, "BLUE");
+    plot.plot(t, u);
+    plot.plot(t, x1, "ORANGE");
+    plot.plot(t, x2, "GREEN");
+    plot.plot(t, x3, "RED");
+    plot.plot(t, x4, "BLUE");
 
-    plot.plot(t1, k);
+    // plot.plot(t1, k);
 
     plot.render();
 

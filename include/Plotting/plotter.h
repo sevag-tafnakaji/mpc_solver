@@ -21,7 +21,8 @@ void processInput(GLFWwindow *window);
 #define NUM_X_TICKS 9
 #define NUM_Y_TICKS 7
 #define TICK_OFFSET 0.025f
-#define TEXT_OFFSET 10
+#define TICK_SIZE 0.01f
+#define TEXT_OFFSET 0.025f
 
 struct Character
 {

@@ -37,4 +37,6 @@ bool comp_x(const Vertex &a, const Vertex &b);
 
 bool comp_y(const Vertex &a, const Vertex &b);
 
+Eigen::Matrix4f ortho(float right, float left, float top, float bottom, float far, float near);
+
 #endif

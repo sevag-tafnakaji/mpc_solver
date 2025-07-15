@@ -1,13 +1,5 @@
 #include "Plotting/plotter.h"
 
-Eigen::Matrix3f ortho(int width, int height)
-{
-    return Eigen::Matrix3f{
-        {2.0f / width, 0, -1.0f},
-        {0, 2.0f / height, -1.0f},
-        {0.0f, 0.0f, 1.0f}};
-}
-
 Plotter::Plotter()
 {
     this->init();
@@ -142,7 +134,7 @@ void Plotter::render()
 
         glBindVertexArray(0);
 
-        // renderText("This is a sample text 0123456789", 50.0f, 50.0f, 1.0f, Colour(0.5f, 0.8f, 0.2f));
+        // renderText("This is a sample text 0123456789", -0.8f, -0.8f, 1.0f, Colour(0.5f, 0.8f, 0.2f));
 
         renderTickLabels();
 
@@ -210,8 +202,6 @@ void Plotter::plotAxesTicks()
     float xOffset = TICK_OFFSET;
     float yOffset = TICK_OFFSET;
 
-    float tickSize = 0.01f;
-
     float ticks[NUM_X_TICKS * 4 + NUM_Y_TICKS * 4];
 
     int k = 0;
@@ -222,29 +212,23 @@ void Plotter::plotAxesTicks()
         ticks[i + 1] = yInit;
         xTickPositions.push_back(Vertex{ticks[i], ticks[i + 1]});
         ticks[i + 2] = xInit + k * xDelta + xOffset;
-        ticks[i + 3] = yInit - tickSize;
+        ticks[i + 3] = yInit - TICK_SIZE;
         k++;
-        std::cout << ticks[i] << ", " << ticks[i + 1] << std::endl;
     }
 
     k = 0;
 
     xInit = (float)scalePoint(0.0, xMin, xMax);
     yInit = -0.6;
-    std::cout << "---------------_" << std::endl;
-
     // vertices of all ticks on y axis.
     for (int j = NUM_X_TICKS * 4; j < NUM_X_TICKS * 4 + NUM_Y_TICKS * 4; j += 4)
     {
         ticks[j] = xInit - xOffset;
         ticks[j + 1] = yInit + k * yDelta;
-        if (k == 0)
-            std::cout << ticks[j] << ", " << ticks[j + 1] << std::endl;
         yTickPositions.push_back(Vertex{ticks[j], ticks[j + 1]});
-        ticks[j + 2] = xInit - tickSize - xOffset;
+        ticks[j + 2] = xInit - TICK_SIZE - xOffset;
         ticks[j + 3] = yInit + k * yDelta;
         k++;
-        std::cout << ticks[j] << ", " << ticks[j + 1] << std::endl;
     }
 
     unsigned int VBO, VAO;
@@ -265,45 +249,27 @@ void Plotter::plotAxesTicks()
 
 void Plotter::renderTickLabels()
 {
-    float textScale = 0.15f;
-    int nDecimals = 3;
-    int k = 0;
+    float textScale = 0.25f;
+    int nDecimals = 1;
 
     for (Vertex xTickPosition : xTickPositions)
     {
-        // convert from [-0.5, 0.5] to [0, width] or [0, height] (pixel)
-        float xPos = scaleBackPoint(xTickPosition.x - TICK_OFFSET, 0.6, SCR_WIDTH * 0.2, SCR_WIDTH * 0.8);
-        float yPos = scaleBackPoint(xTickPosition.y, 0.6, SCR_HEIGHT * 0.2, SCR_HEIGHT * 0.8);
-
         float xValue = scaleBackPoint(xTickPosition.x, 0.5, xMin, xMax);
-
-        // if (k == 0)
-        std::cout << xTickPosition.x << ", " << xTickPosition.y << ", " << xPos << ", " << yPos << ", " << xMin << ", " << xMax << ", " << xValue << std::endl;
-        k++;
 
         std::string formattedXValue = std::to_string(xValue);
         formattedXValue = formattedXValue.substr(0, formattedXValue.size() - (6 - nDecimals));
 
-        renderText("X", xTickPosition.x, xTickPosition.y, textScale, Colour{"WHITE"});
+        renderText(formattedXValue, xTickPosition.x - TICK_OFFSET, xTickPosition.y - TICK_SIZE - TEXT_OFFSET, textScale, Colour{"WHITE"});
     }
-    std::cout << "------x------" << std::endl;
-    k = 0;
+
     for (Vertex yTickPosition : yTickPositions)
     {
-        // convert from [-0.5, 0.5] to [0, width] or [0, height] (pixel)
-        float xPos = scaleBackPoint(yTickPosition.x, 0.6, SCR_WIDTH * 0.2, SCR_WIDTH * 0.8);
-        float yPos = scaleBackPoint(yTickPosition.y, 0.6, SCR_HEIGHT * 0.2, SCR_HEIGHT * 0.8);
-
         float yValue = scaleBackPoint(yTickPosition.y, 0.5, yMin, yMax);
-
-        // if (k == 0)
-        std::cout << yTickPosition.x << ", " << yTickPosition.y << ", " << xPos << ", " << yPos << ", " << yMin << ", " << yMax << ", " << yValue << std::endl;
-        k++;
 
         std::string formattedYValue = std::to_string(yValue);
         formattedYValue = formattedYValue.substr(0, formattedYValue.size() - (6 - nDecimals));
 
-        renderText("Y", (float)scalePoint(0.0, xMin, xMax) + 0.2, yTickPosition.y, textScale, Colour{"WHITE"});
+        renderText(formattedYValue, yTickPosition.x - TICK_SIZE - TEXT_OFFSET, yTickPosition.y - TICK_OFFSET, textScale, Colour{"WHITE"});
     }
     std::cout << "------y------" << std::endl;
 }
@@ -358,6 +324,20 @@ void Plotter::init()
 
 void Plotter::initFont()
 {
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    Shader textShader = ResourceManager::LoadShader("../resources/shaders/text.vs", "../resources/shaders/text.fs", nullptr, "text");
+
+    Eigen::Matrix4f orthoProjection = ortho(static_cast<float>(SCR_WIDTH), 0.0f, static_cast<float>(SCR_HEIGHT), 0.0f, 100.0f, 0.1f);
+
+    std::cout << orthoProjection << std::endl;
+
+    // Something about this matrix is off. Either values or how it's passed to the shader
+    textShader.Use();
+    int projectionLoc = glGetUniformLocation(textShader.ID, "projection");
+    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, orthoProjection.data());
+
     FT_Library ft;
     if (FT_Init_FreeType(&ft))
         std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
@@ -406,11 +386,10 @@ void Plotter::initFont()
         characters[c] = character;
     }
 
+    glBindTexture(GL_TEXTURE_2D, 0);
+
     FT_Done_Face(face);
     FT_Done_FreeType(ft);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glGenVertexArrays(1, &textVAO);
     glGenBuffers(1, &textVBO);
@@ -421,16 +400,9 @@ void Plotter::initFont()
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
-
-    Shader textShader = ResourceManager::LoadShader("../resources/shaders/text.vs", "../resources/shaders/text.fs", nullptr, "text");
-
-    Eigen::Matrix3f orthoProjection = ortho(800, 600);
-
-    textShader.Use();
-    int projectionLoc = glGetUniformLocation(textShader.ID, "projection");
-    glUniformMatrix3fv(projectionLoc, 1, GL_FALSE, orthoProjection.data());
 }
 
+// difference from tutorials: x,y found in range [-1, 1] rather than [0, width] or [0, height]
 void Plotter::renderText(std::string text, float x, float y, float scale, Colour colour)
 {
     Shader textShader = ResourceManager::GetShader("text");
@@ -447,8 +419,8 @@ void Plotter::renderText(std::string text, float x, float y, float scale, Colour
     {
         Character ch = characters[*c];
 
-        float xPos = x + ch.Bearing[0] * scale;
-        float yPos = y - (ch.Size[1] - ch.Bearing[1]) * scale;
+        float xPos = x + ch.Bearing[0] * scale / SCR_WIDTH;
+        float yPos = y - (ch.Size[1] - ch.Bearing[1]) * scale / SCR_HEIGHT;
 
         float w = ch.Size[0] * scale / SCR_WIDTH;
         float h = ch.Size[1] * scale / SCR_HEIGHT;
@@ -475,7 +447,7 @@ void Plotter::renderText(std::string text, float x, float y, float scale, Colour
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
         // advance cursors for next glyph (advance is 1/64, hence bitshift of 2^6)
-        x += (ch.Advance >> 6) * scale;
+        x += (ch.Advance >> 6) * scale / SCR_WIDTH;
     }
 
     glBindVertexArray(0);

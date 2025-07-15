@@ -26,9 +26,9 @@ double scalePoint(double raw, double minValue, double maxValue)
 double scaleBackPoint(double scaled, double scaleEdgeValue, double minValue, double maxValue)
 {
     double absMinValue = fabs(minValue);
-    double shiftedMax = maxValue - absMinValue;
+    double shiftedMax = maxValue + absMinValue;
     // return (fabs(scaled) - scaleEdgeValue) * shiftedMax * scaled / fabs(scaled) + minValue;
-    return (scaled + scaleEdgeValue) * shiftedMax + minValue;
+    return (scaled + scaleEdgeValue) * shiftedMax - absMinValue;
 }
 
 std::vector<Vertex> scaleVector(std::vector<Vertex> vect, double xMinValue, double xMaxValue, double yMinValue, double yMaxValue)
@@ -61,4 +61,13 @@ bool comp_x(const Vertex &a, const Vertex &b)
 bool comp_y(const Vertex &a, const Vertex &b)
 {
     return a.y < b.y;
+}
+
+Eigen::Matrix4f ortho(float right, float left, float top, float bottom, float far, float near)
+{
+    return Eigen::Matrix4f{
+        {2.0f / (right - left), 0, 0, -1.0f * (right + left) / (right - left)},
+        {0, 2.0f / (top - bottom), 0, -1.0f * (top + bottom) / (top - bottom)},
+        {0, 0, -2.0f / (far - near), -1.0f * (far + near) / (far - near)},
+        {0.0f, 0.0f, 0, 1.0f}};
 }
