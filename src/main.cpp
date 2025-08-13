@@ -2,7 +2,8 @@
 #include <chrono>
 #include "mpc.h"
 #include "example_model.h"
-#include "Plotting/plotter.h"
+// #include "Plotting/plotter.h"
+#include <Plotter/Plotter.h>
 
 #define HORIZON 40
 #define N_STEPS 200
@@ -38,6 +39,7 @@ int main()
         x3.push_back(results.first[i][2]);
         x4.push_back(results.first[i][3]);
     }
+
     t1.push_back(N_STEPS - 100);
     k.push_back(2 * (N_STEPS - 100) + 10);
 
@@ -52,10 +54,10 @@ int main()
 
     // plot then show some data
     plot.plot(t, u);
-    plot.plot(t, x1, "ORANGE");
-    plot.plot(t, x2, "GREEN");
-    plot.plot(t, x3, "RED");
-    plot.plot(t, x4, "BLUE");
+    plot.plot(t, x1);
+    plot.plot(t, x2);
+    plot.plot(t, x3);
+    plot.plot(t, x4);
 
     // plot.plot(t1, k);
 
